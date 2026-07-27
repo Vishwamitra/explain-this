@@ -29,6 +29,6 @@ export default defineManifest({
   },
   content_security_policy: {
     extension_pages:
-      "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://huggingface.co https://raw.githubusercontent.com https://cdn.jsdelivr.net;"
+      "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://huggingface.co https://*.huggingface.co https://hf.co https://*.hf.co https://raw.githubusercontent.com https://cdn.jsdelivr.net;"
   }
 });
