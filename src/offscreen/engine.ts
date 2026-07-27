@@ -5,7 +5,9 @@ import type { BackgroundToOffscreenMessage, OffscreenToBackgroundMessage } from 
 let enginePromise: Promise<MLCEngine> | null = null;
 
 function send(message: OffscreenToBackgroundMessage) {
-  chrome.runtime.sendMessage(message);
+  chrome.runtime.sendMessage(message).catch((err) => {
+    console.warn("Explain This: no listener for offscreen message", message.type, err);
+  });
 }
 
 function getEngine(): Promise<MLCEngine> {

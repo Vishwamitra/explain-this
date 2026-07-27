@@ -1,3 +1,5 @@
+import type { OffscreenToBackgroundMessage } from "../shared/messages";
+
 const OFFSCREEN_URL = "src/offscreen/offscreen.html";
 
 async function ensureOffscreenDocument() {
@@ -15,6 +17,11 @@ async function ensureOffscreenDocument() {
 chrome.action.onClicked.addListener(async () => {
   await ensureOffscreenDocument();
   chrome.runtime.sendMessage({ type: "OFFSCREEN_RUN_TEST" });
+});
+
+// Temporary logging listener — replaced by tab-routing logic in the next step.
+chrome.runtime.onMessage.addListener((message: OffscreenToBackgroundMessage) => {
+  console.log("Explain This: background received", message);
 });
 
 console.log("Explain This: background service worker loaded");
