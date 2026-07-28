@@ -37,6 +37,16 @@ async function sendToOffscreen(message: BackgroundToOffscreenMessage, attempts =
   }
 }
 
+// A tab's content script can be gone (closed, navigated away, or, during
+// development, a stale instance left over from before an extension reload).
+// That's a normal race, not a bug, so swallow it rather than logging an
+// uncaught rejection.
+function sendToTab(tabId: number, message: BackgroundToContentMessage) {
+  chrome.tabs.sendMessage(tabId, message).catch(() => {
+    console.warn("Explain This: no content script listening in tab", tabId);
+  });
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: MENU_ID,
@@ -51,8 +61,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const requestId = crypto.randomUUID();
   requestTabs.set(requestId, tab.id);
 
-  const loadingMessage: BackgroundToContentMessage = { type: "SHOW_LOADING", requestId };
-  chrome.tabs.sendMessage(tab.id, loadingMessage);
+  sendToTab(tab.id, { type: "SHOW_LOADING", requestId });
 
   await ensureOffscreenDocument();
   await sendToOffscreen({ type: "OFFSCREEN_GENERATE", requestId, text: info.selectionText });
@@ -65,7 +74,7 @@ chrome.runtime.onMessage.addListener((message: OffscreenToBackgroundMessage) => 
     return;
   }
 
-  chrome.tabs.sendMessage(tabId, message);
+  sendToTab(tabId, message);
 
   if (message.type === "EXPLAIN_STREAM_DONE" || message.type === "EXPLAIN_ERROR") {
     requestTabs.delete(message.requestId);
