@@ -1,4 +1,8 @@
-import type { BackgroundToContentMessage, OffscreenToBackgroundMessage } from "../shared/messages";
+import type {
+  BackgroundToContentMessage,
+  BackgroundToOffscreenMessage,
+  OffscreenToBackgroundMessage
+} from "../shared/messages";
 
 const OFFSCREEN_URL = "src/offscreen/offscreen.html";
 const MENU_ID = "explain-this";
@@ -16,6 +20,21 @@ async function ensureOffscreenDocument() {
     reasons: [chrome.offscreen.Reason.WORKERS],
     justification: "Run a local LLM via WebGPU to generate on-page explanations"
   });
+}
+
+// chrome.offscreen.createDocument() resolves once the document exists, but its
+// module script (which registers the message listener) may not have finished
+// running yet. Retry past the resulting "Receiving end does not exist" error.
+async function sendToOffscreen(message: BackgroundToOffscreenMessage, attempts = 20) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      await chrome.runtime.sendMessage(message);
+      return;
+    } catch (err) {
+      if (attempt === attempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -36,7 +55,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   chrome.tabs.sendMessage(tab.id, loadingMessage);
 
   await ensureOffscreenDocument();
-  chrome.runtime.sendMessage({ type: "OFFSCREEN_GENERATE", requestId, text: info.selectionText });
+  await sendToOffscreen({ type: "OFFSCREEN_GENERATE", requestId, text: info.selectionText });
 });
 
 chrome.runtime.onMessage.addListener((message: OffscreenToBackgroundMessage) => {
