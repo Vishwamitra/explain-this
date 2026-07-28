@@ -30,6 +30,16 @@ function getEngine(): Promise<MLCEngine> {
 }
 
 async function runGenerate(requestId: string, text: string) {
+  if (!("gpu" in navigator)) {
+    send({
+      type: "EXPLAIN_ERROR",
+      requestId,
+      message:
+        "This browser doesn't support WebGPU, which Explain This needs for local inference. Try a recent version of Chrome or Edge on desktop."
+    });
+    return;
+  }
+
   currentRequestId = requestId;
   try {
     const engine = await getEngine();
