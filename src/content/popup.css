@@ -1,0 +1,97 @@
+.panel {
+  box-sizing: border-box;
+  width: 320px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 12px 32px 12px 14px;
+  border-radius: 10px;
+  background: #1f2430;
+  color: #f2f4f8;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.close {
+  all: unset;
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #aab2c5;
+  font-size: 15px;
+}
+
+.close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.notice {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #c7cee0;
+  font-size: 12px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #7aa2ff;
+  animation: explain-this-spin 0.7s linear infinite;
+}
+
+@keyframes explain-this-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: #7aa2ff;
+  width: 0%;
+  transition: width 0.15s ease-out;
+}
+
+.progress-label {
+  color: #aab2c5;
+  font-size: 11px;
+}
+
+.text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error {
+  color: #ff8080;
+}
