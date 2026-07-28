@@ -11,6 +11,19 @@ const MENU_ID = "explain-this";
 // can be routed back to the right tab (offscreen documents have no tabs API).
 const requestTabs = new Map<string, number>();
 
+// The WebLLM engine is a single shared instance in the offscreen document, so
+// only one explanation can generate at a time in v1. Disable the menu item
+// rather than let a second click collide with it.
+let busy = false;
+
+function setBusy(value: boolean) {
+  busy = value;
+  chrome.contextMenus.update(MENU_ID, {
+    enabled: !value,
+    title: value ? "Explain This (working...)" : "Explain This"
+  });
+}
+
 async function ensureOffscreenDocument() {
   const hasDocument = await chrome.offscreen.hasDocument();
   if (hasDocument) return;
@@ -56,15 +69,23 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== MENU_ID || !info.selectionText || !tab?.id) return;
+  if (info.menuItemId !== MENU_ID || !info.selectionText || !tab?.id || busy) return;
 
   const requestId = crypto.randomUUID();
   requestTabs.set(requestId, tab.id);
+  setBusy(true);
 
   sendToTab(tab.id, { type: "SHOW_LOADING", requestId });
 
-  await ensureOffscreenDocument();
-  await sendToOffscreen({ type: "OFFSCREEN_GENERATE", requestId, text: info.selectionText });
+  try {
+    await ensureOffscreenDocument();
+    await sendToOffscreen({ type: "OFFSCREEN_GENERATE", requestId, text: info.selectionText });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    sendToTab(tab.id, { type: "EXPLAIN_ERROR", requestId, message });
+    requestTabs.delete(requestId);
+    setBusy(false);
+  }
 });
 
 chrome.runtime.onMessage.addListener((message: OffscreenToBackgroundMessage) => {
@@ -78,6 +99,7 @@ chrome.runtime.onMessage.addListener((message: OffscreenToBackgroundMessage) => 
 
   if (message.type === "EXPLAIN_STREAM_DONE" || message.type === "EXPLAIN_ERROR") {
     requestTabs.delete(message.requestId);
+    setBusy(false);
   }
 });
 
