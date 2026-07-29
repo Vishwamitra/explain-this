@@ -1,6 +1,6 @@
 {
   "name": "explain-this",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Select text on any page, right-click, and get a plain-language explanation from a local LLM. No server, no API key.",
   "type": "module",
   "scripts": {
