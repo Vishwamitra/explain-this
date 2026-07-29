@@ -1,7 +1,7 @@
 {
   "name": "explain-this",
   "version": "0.1.1",
-  "description": "Select text on any page, right-click, and get a plain-language explanation, powered by a local in-browser LLM. No server, no API key.",
+  "description": "Select text on any page, right-click, and get a plain-language explanation from a local LLM. No server, no API key.",
   "type": "module",
   "scripts": {
     "dev": "vite",
