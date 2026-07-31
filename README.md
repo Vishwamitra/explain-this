@@ -2,6 +2,8 @@
 
 Select any text on a page, right-click, hit "Explain This," get a plain-language explanation. Runs entirely in your browser tab using a local LLM over WebGPU. No server, no API key, nothing ever leaves your machine.
 
+![Selecting text on a page, right-clicking Explain This, and the explanation streaming into a popup](assets/demo-instant.gif)
+
 ## Why
 
 I was messing around with Ollama and vLLM locally for privacy-sensitive stuff (translating docs, RAG over my own notes) and got curious about WebLLM, which runs models straight in the browser via WebGPU instead of needing a separate server process. It used to be pretty slow and limited. Turns out it's gotten a lot better lately, so I built this to actually test it on something real instead of just reading benchmarks.
@@ -14,7 +16,9 @@ Chrome or Edge, recent desktop version (needs WebGPU, which is Chrome 113+ rough
 
 The first time you use it, it downloads the model (Llama 3.2 1B, quantized, about 880MB) and caches it in the browser. That happens once. Every explanation after that is instant and fully offline. You'll see a progress bar the first time so it's obvious what's happening.
 
-## Installing it (dev mode, not on the Chrome Web Store yet)
+![First run downloading the model with a progress bar, then streaming the explanation once it's ready](assets/demo-first-run.gif)
+
+## Installing it (dev mode, Chrome Web Store listing is in review)
 
 ```bash
 git clone https://github.com/Vishwamitra/explain-this.git
