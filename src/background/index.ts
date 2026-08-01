@@ -11,6 +11,35 @@ const MENU_ID = "explain-this";
 // can be routed back to the right tab (offscreen documents have no tabs API).
 const requestTabs = new Map<string, number>();
 
+// If the offscreen document dies mid-generation (killed by Chrome, torn down
+// by an extension update), no more messages ever arrive and the request would
+// hang forever. Re-armed on every sign of life, fires if one goes quiet.
+const REQUEST_TIMEOUT_MS = 45_000;
+const requestTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+
+function clearRequestTimeout(requestId: string) {
+  const handle = requestTimeouts.get(requestId);
+  if (handle !== undefined) {
+    clearTimeout(handle);
+    requestTimeouts.delete(requestId);
+  }
+}
+
+function armRequestTimeout(requestId: string, tabId: number) {
+  clearRequestTimeout(requestId);
+  const handle = setTimeout(() => {
+    requestTimeouts.delete(requestId);
+    requestTabs.delete(requestId);
+    sendToTab(tabId, {
+      type: "EXPLAIN_ERROR",
+      requestId,
+      message: "Lost contact with the offscreen document. Try again."
+    });
+    setBusy(false);
+  }, REQUEST_TIMEOUT_MS);
+  requestTimeouts.set(requestId, handle);
+}
+
 // The WebLLM engine is a single shared instance in the offscreen document, so
 // only one explanation can generate at a time in v1. Disable the menu item
 // rather than let a second click collide with it.
@@ -74,6 +103,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const requestId = crypto.randomUUID();
   requestTabs.set(requestId, tab.id);
   setBusy(true);
+  armRequestTimeout(requestId, tab.id);
 
   sendToTab(tab.id, { type: "SHOW_LOADING", requestId });
 
@@ -82,6 +112,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     await sendToOffscreen({ type: "OFFSCREEN_GENERATE", requestId, text: info.selectionText });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    clearRequestTimeout(requestId);
     sendToTab(tab.id, { type: "EXPLAIN_ERROR", requestId, message });
     requestTabs.delete(requestId);
     setBusy(false);
@@ -98,8 +129,11 @@ chrome.runtime.onMessage.addListener((message: OffscreenToBackgroundMessage) => 
   sendToTab(tabId, message);
 
   if (message.type === "EXPLAIN_STREAM_DONE" || message.type === "EXPLAIN_ERROR") {
+    clearRequestTimeout(message.requestId);
     requestTabs.delete(message.requestId);
     setBusy(false);
+  } else {
+    armRequestTimeout(message.requestId, tabId);
   }
 });
 
