@@ -117,7 +117,11 @@ async function startGenerate(requestId: string, tabId: number, text: string, act
   }
 }
 
-chrome.runtime.onInstalled.addListener(() => {
+// Registering only in chrome.runtime.onInstalled isn't reliable enough: it
+// fires on a fresh install or a version bump, but not on every service
+// worker wake-up. Re-registering on every startup, with removeAll() first
+// to avoid a duplicate-id error, covers install, update, and reload alike.
+chrome.contextMenus.removeAll(() => {
   chrome.contextMenus.create({
     id: MENU_ID,
     title: "Explain This",
