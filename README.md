@@ -14,7 +14,7 @@ Chrome or Edge, recent desktop version (needs WebGPU, which is Chrome 113+ rough
 
 ## First run
 
-The first time you use it, it downloads the model (Llama 3.2 1B, quantized, about 880MB) and caches it in the browser. That happens once. Every explanation after that is instant and fully offline. You'll see a progress bar the first time so it's obvious what's happening.
+The first time you use it, it downloads the model (Llama 3.2 1B, quantized, about 880MB) and caches it in the browser. That happens once, you'll see a progress bar so it's obvious what's happening. While the extension keeps the model warm in memory, explanations are genuinely instant. If Chrome tears down the extension's background page (browser restart, extension update, long idle), the next explanation has to re-read the cached weights from disk and rebuild the WebGPU pipeline, which takes a few real seconds, not a re-download, but not instant either.
 
 ![First run downloading the model with a progress bar, then streaming the explanation once it's ready](assets/demo-first-run.gif)
 
