@@ -16,7 +16,13 @@ Chrome or Edge, recent desktop version (needs WebGPU, which is Chrome 113+ rough
 
 The first time you use it, it downloads the model (Llama 3.2 1B, quantized, about 880MB) and caches it in the browser. That happens once, you'll see a progress bar so it's obvious what's happening. While the extension keeps the model warm in memory, explanations are genuinely instant. If Chrome tears down the extension's background page (browser restart, extension update, long idle), the next explanation has to re-read the cached weights from disk and rebuild the WebGPU pipeline, which takes a few real seconds, not a re-download, but not instant either.
 
+Known rough edge: right after a full browser restart, the very first explanation can occasionally take noticeably longer, or need a second try, while the offscreen document finishes a cold start. Not something you're doing wrong, and it resolves on its own; a fix for this specific case is on the list.
+
 ![First run downloading the model with a progress bar, then streaming the explanation once it's ready](assets/demo-first-run.gif)
+
+## Follow-up actions
+
+Once an explanation finishes, a small row of buttons appears underneath it: **Regenerate** (a different phrasing of the same explanation), **Elaborate** (more detail), **Simplify** (shorter, less jargon), **Example** (adds a concrete example), and **Copy**. Each of the four generation buttons reruns the model with a different instruction rather than continuing an open-ended conversation, that keeps them fast and avoids the small model losing the thread over a long back-and-forth.
 
 ## Installing it (dev mode, Chrome Web Store listing is in review)
 
