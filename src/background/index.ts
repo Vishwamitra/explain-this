@@ -74,16 +74,19 @@ async function ensureOffscreenDocument() {
 }
 
 // chrome.offscreen.createDocument() resolves once the document exists, but its
-// module script (which registers the message listener) may not have finished
-// running yet. Retry past the resulting "Receiving end does not exist" error.
-async function sendToOffscreen(message: BackgroundToOffscreenMessage, attempts = 20) {
+// module script (which needs to parse the multi-MB WebLLM bundle before it can
+// register a message listener) may not have finished running yet. Retry past
+// the resulting "Receiving end does not exist" error. On a cold start, right
+// after a full browser restart with nothing warmed in any cache, this can
+// take several seconds, so the budget here is generous on purpose.
+async function sendToOffscreen(message: BackgroundToOffscreenMessage, attempts = 100) {
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
       await chrome.runtime.sendMessage(message);
       return;
     } catch (err) {
       if (attempt === attempts) throw err;
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     }
   }
 }
