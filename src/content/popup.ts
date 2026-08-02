@@ -1,9 +1,16 @@
-import type { BackgroundToContentMessage } from "../shared/messages";
+import type { BackgroundToContentMessage, ContentToBackgroundMessage, ExplainAction } from "../shared/messages";
 import popupCss from "./popup.css?raw";
 
 const FIRST_RUN_KEY = "explainThisSeenFirstRunNotice";
 const FIRST_RUN_NOTICE =
   "First use: downloading a small local AI model (~880MB), one time. After that it works instantly offline.";
+
+const ACTIONS: { label: string; action: ExplainAction }[] = [
+  { label: "Regenerate", action: "regenerate" },
+  { label: "Elaborate", action: "elaborate" },
+  { label: "Simplify", action: "simplify" },
+  { label: "Example", action: "example" }
+];
 
 interface PopupElements {
   notice: HTMLParagraphElement;
@@ -13,6 +20,8 @@ interface PopupElements {
   progressLabel: HTMLDivElement;
   text: HTMLDivElement;
   error: HTMLDivElement;
+  actions: HTMLDivElement;
+  copyBtn: HTMLButtonElement;
 }
 
 let currentRequestId: string | null = null;
@@ -75,7 +84,25 @@ function build() {
   error.className = "error hidden";
   panel.appendChild(error);
 
-  els = { notice, spinner, progressWrap, progressBar, progressLabel, text, error };
+  const actions = document.createElement("div");
+  actions.className = "actions hidden";
+
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "action-btn";
+  copyBtn.textContent = "Copy";
+  copyBtn.addEventListener("click", onCopyClick);
+  actions.appendChild(copyBtn);
+
+  for (const { label, action } of ACTIONS) {
+    const btn = document.createElement("button");
+    btn.className = "action-btn";
+    btn.textContent = label;
+    btn.addEventListener("click", () => sendAction(action));
+    actions.appendChild(btn);
+  }
+  panel.appendChild(actions);
+
+  els = { notice, spinner, progressWrap, progressBar, progressLabel, text, error, actions, copyBtn };
 
   document.addEventListener("keydown", onKeydown);
   document.addEventListener("mousedown", onOutsideClick, true);
@@ -87,6 +114,33 @@ function hideAllStatus() {
   els.spinner.classList.add("hidden");
   els.progressWrap.classList.add("hidden");
   els.error.classList.add("hidden");
+  els.actions.classList.add("hidden");
+}
+
+function sendAction(action: ExplainAction) {
+  if (!currentRequestId) return;
+  const message: ContentToBackgroundMessage = { type: "ACTION_REQUEST", requestId: currentRequestId, action };
+  chrome.runtime.sendMessage(message).catch(() => {
+    console.warn("Explain This: failed to send action request");
+  });
+}
+
+function onCopyClick() {
+  if (!els) return;
+  const text = els.text.textContent ?? "";
+  const button = els.copyBtn;
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      const original = button.textContent;
+      button.textContent = "Copied";
+      setTimeout(() => {
+        button.textContent = original;
+      }, 1200);
+    })
+    .catch(() => {
+      console.warn("Explain This: clipboard write failed");
+    });
 }
 
 function positionNear(rect: DOMRect) {
@@ -160,6 +214,7 @@ function finish(requestId: string, fullText: string) {
   hideAllStatus();
   els.text.classList.remove("hidden");
   els.text.textContent = fullText;
+  els.actions.classList.remove("hidden");
 }
 
 function showError(requestId: string, message: string) {

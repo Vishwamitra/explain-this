@@ -95,3 +95,26 @@
 .error {
   color: #ff8080;
 }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.action-btn {
+  all: unset;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #c7cee0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
