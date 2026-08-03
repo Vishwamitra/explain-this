@@ -15,7 +15,7 @@ export default defineManifest({
     service_worker: "src/background/index.ts",
     type: "module"
   },
-  permissions: ["contextMenus", "offscreen", "storage"],
+  permissions: ["contextMenus", "offscreen"],
   host_permissions: ["<all_urls>"],
   content_scripts: [
     {
