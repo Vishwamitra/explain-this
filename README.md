@@ -4,6 +4,10 @@ Select any text on a page, right-click, hit "Explain This," get a plain-language
 
 ![Selecting text on a page, right-clicking Explain This, and the explanation streaming into a popup](assets/demo-instant.gif)
 
+## Install
+
+[Get it from the Chrome Web Store](https://chromewebstore.google.com/detail/explain-this/bhgfnompagjefmcjekejcbefjcehabbl), one click, no build step needed. If you want to read or modify the code first, see [Installing from source](#installing-from-source-dev-mode) below.
+
 ## Why
 
 I was messing around with Ollama and vLLM locally for privacy-sensitive stuff (translating docs, RAG over my own notes) and got curious about WebLLM, which runs models straight in the browser via WebGPU instead of needing a separate server process. It used to be pretty slow and limited. Turns out it's gotten a lot better lately, so I built this to actually test it on something real instead of just reading benchmarks.
@@ -24,7 +28,7 @@ Known rough edge: right after a full browser restart, the very first explanation
 
 Once an explanation finishes, a small row of buttons appears underneath it: **Regenerate** (a different phrasing of the same explanation), **Elaborate** (more detail), **Simplify** (shorter, less jargon), **Example** (adds a concrete example), and **Copy**. Each of the four generation buttons reruns the model with a different instruction rather than continuing an open-ended conversation, that keeps them fast and avoids the small model losing the thread over a long back-and-forth.
 
-## Installing it (dev mode, Chrome Web Store listing is in review)
+## Installing from source (dev mode)
 
 ```bash
 git clone https://github.com/Vishwamitra/explain-this.git
