@@ -3,12 +3,13 @@ import { builtInStatus, streamBuiltIn } from "../shared/builtin-ai";
 import { DEFAULT_MODEL_ID } from "../shared/config";
 import { getEnginePref } from "../shared/engine-pref";
 import type {
+  AskContext,
   BackgroundToOffscreenMessage,
   EngineKind,
   ExplainAction,
   OffscreenToBackgroundMessage
 } from "../shared/messages";
-import { PROMPTS } from "../shared/prompts";
+import { ASK_PROMPT, buildAskMessage, PROMPTS } from "../shared/prompts";
 
 const NO_WEBGPU_MESSAGE =
   "This browser doesn't support WebGPU, which Explain This needs for local inference. Try a recent version of Chrome or Edge on desktop.";
@@ -50,8 +51,8 @@ async function pickEngine(): Promise<EngineKind> {
 
 async function generateWithWebLLM(
   requestId: string,
+  system: string,
   text: string,
-  action: ExplainAction | undefined,
   onDelta: (delta: string) => void
 ): Promise<string> {
   if (!("gpu" in navigator)) throw new Error(NO_WEBGPU_MESSAGE);
@@ -61,7 +62,7 @@ async function generateWithWebLLM(
     const engine = await getEngine();
     const stream = await engine.chat.completions.create({
       messages: [
-        { role: "system", content: PROMPTS[action ?? "explain"] },
+        { role: "system", content: system },
         { role: "user", content: text }
       ],
       stream: true
@@ -81,7 +82,9 @@ async function generateWithWebLLM(
   }
 }
 
-async function runGenerate(requestId: string, text: string, action?: ExplainAction) {
+async function runGenerate(requestId: string, text: string, action?: ExplainAction, ask?: AskContext) {
+  const system = ask ? ASK_PROMPT : PROMPTS[action ?? "explain"];
+  const userText = ask ? buildAskMessage(ask) : text;
   let emitted = false;
   const onDelta = (delta: string) => {
     emitted = true;
@@ -94,17 +97,17 @@ async function runGenerate(requestId: string, text: string, action?: ExplainActi
 
     if (engine === "chrome") {
       try {
-        fullText = await streamBuiltIn(PROMPTS[action ?? "explain"], text, onDelta);
+        fullText = await streamBuiltIn(system, userText, onDelta);
       } catch (err) {
         // Once text has reached the popup there is nothing sensible to fall
         // back to. Before that, WebLLM can still answer.
         if (emitted) throw err;
         console.warn("Explain This: Chrome's built-in model failed, falling back to WebLLM", err);
         engine = "webllm";
-        fullText = await generateWithWebLLM(requestId, text, action, onDelta);
+        fullText = await generateWithWebLLM(requestId, system, userText, onDelta);
       }
     } else {
-      fullText = await generateWithWebLLM(requestId, text, action, onDelta);
+      fullText = await generateWithWebLLM(requestId, system, userText, onDelta);
     }
 
     send({ type: "EXPLAIN_STREAM_DONE", requestId, fullText, engine });
@@ -117,6 +120,6 @@ async function runGenerate(requestId: string, text: string, action?: ExplainActi
 
 chrome.runtime.onMessage.addListener((message: BackgroundToOffscreenMessage) => {
   if (message.type === "OFFSCREEN_GENERATE") {
-    runGenerate(message.requestId, message.text, message.action);
+    runGenerate(message.requestId, message.text, message.action, message.ask);
   }
 });

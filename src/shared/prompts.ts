@@ -9,3 +9,12 @@ export const PROMPTS: Record<"explain" | ExplainAction, string> = {
   example:
     "Explain the following text in simple, plain language, and include one concrete example to illustrate it."
 };
+
+export const ASK_PROMPT =
+  "You answer questions about a web page using only the numbered passages below. " +
+  "Cite the passages you used like [1] or [2]. If the passages do not contain the answer, say you could not find it on this page. Be concise.";
+
+export function buildAskMessage({ question, passages }: { question: string; passages: string[] }): string {
+  const numbered = passages.map((text, i) => `[${i + 1}] ${text}`).join("\n\n");
+  return `Passages:\n\n${numbered}\n\nQuestion: ${question}`;
+}
