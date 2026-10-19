@@ -14,7 +14,7 @@ I was messing around with Ollama and vLLM locally for privacy-sensitive stuff (t
 
 ## Requirements
 
-Chrome or Edge, recent desktop version (needs WebGPU, which is Chrome 113+ roughly). Won't work on browsers without WebGPU support, and the extension will tell you that instead of just failing silently.
+Chrome or Edge, recent desktop version. The WebLLM engine needs WebGPU (Chrome 113+ roughly), and the extension tells you when it's missing instead of failing silently. If your Chrome ships its own built-in model (see below), that path doesn't need WebGPU from this extension at all.
 
 ## First run
 
@@ -27,6 +27,18 @@ Known rough edge: right after a full browser restart, the very first explanation
 ## Follow-up actions
 
 Once an explanation finishes, a small row of buttons appears underneath it: **Regenerate** (a different phrasing of the same explanation), **Elaborate** (more detail), **Simplify** (shorter, less jargon), **Example** (adds a concrete example), and **Copy**. Each of the four generation buttons reruns the model with a different instruction rather than continuing an open-ended conversation, that keeps them fast and avoids the small model losing the thread over a long back-and-forth.
+
+## Ask this page
+
+Right-click anywhere on a page (with nothing selected) and choose **Ask this page**. A small box opens, you type a question, and the answer comes back with numbered citations like [2]. Click one and the page scrolls to the paragraph it came from and flashes it.
+
+Finding the relevant paragraphs is done with plain keyword ranking (BM25) in the page itself, so there's no embedding model and no extra download. The four best passages go to the model along with your question, and it's told to answer only from those. If nothing on the page shares a word with your question, it says so without calling the model. The trade-off is that it matches words, not meaning, so a question phrased very differently from the page can miss. A small 1B model can also cite the wrong passage now and then, which is why the citations are clickable: check the source.
+
+## Two engines
+
+Click the toolbar icon to open the panel. Newer Chrome versions can ship a small model of their own (Gemini Nano, through the Prompt API). If yours has it and you download it once from the panel, Explain This uses it by default and falls back to WebLLM if it fails. You can also force WebLLM there. Each answer says which engine wrote it.
+
+Starting that download needs a click on an extension page, which is why it lives in the panel and not in the hidden page that runs the model.
 
 ## Installing from source (dev mode)
 
