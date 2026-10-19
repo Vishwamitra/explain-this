@@ -4,7 +4,11 @@ export interface PagePassage {
 }
 
 const BLOCKS = "p, li, h2, h3, h4, blockquote, dd, figcaption, td";
-const SKIP_ANCESTORS = "nav, header, footer, aside, script, style, noscript, form, [aria-hidden='true']";
+// Footnote and reference lists answer questions about citations, not about the
+// page, so they are left out along with page chrome.
+const SKIP_ANCESTORS =
+  "nav, header, footer, aside, script, style, noscript, form, [aria-hidden='true'], " +
+  ".references, .reflist, [role='doc-endnotes'], [role='doc-bibliography']";
 const MIN_LENGTH = 40;
 const MAX_LENGTH = 600;
 const MAX_PASSAGES = 2000;
