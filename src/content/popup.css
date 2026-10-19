@@ -96,6 +96,51 @@
   color: #ff8080;
 }
 
+.ask {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.ask-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f2f4f8;
+  font: inherit;
+  font-size: 12px;
+}
+
+.ask-input:focus {
+  outline: 1px solid #7aa2ff;
+}
+
+.action-btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.cite {
+  all: unset;
+  cursor: pointer;
+  color: #7aa2ff;
+  font-size: 12px;
+}
+
+.cite:hover {
+  text-decoration: underline;
+}
+
+.meta {
+  margin-top: 8px;
+  color: #8f99b3;
+  font-size: 11px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

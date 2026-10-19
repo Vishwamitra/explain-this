@@ -1,4 +1,5 @@
 import type {
+  AskContext,
   BackgroundToContentMessage,
   BackgroundToOffscreenMessage,
   ContentToBackgroundMessage,
@@ -8,6 +9,7 @@ import type {
 
 const OFFSCREEN_URL = "src/offscreen/offscreen.html";
 const MENU_ID = "explain-this";
+const ASK_MENU_ID = "explain-this-ask";
 
 // Which tab each in-flight request came from and the original selected text,
 // so a follow-up action can regenerate without re-selecting anything, and so
@@ -60,6 +62,7 @@ function setBusy(value: boolean) {
     enabled: !value,
     title: value ? "Explain This (working...)" : "Explain This"
   });
+  chrome.contextMenus.update(ASK_MENU_ID, { enabled: !value });
 }
 
 async function ensureOffscreenDocument() {
@@ -101,7 +104,13 @@ function sendToTab(tabId: number, message: BackgroundToContentMessage) {
   });
 }
 
-async function startGenerate(requestId: string, tabId: number, text: string, action?: ExplainAction) {
+async function startGenerate(
+  requestId: string,
+  tabId: number,
+  text: string,
+  action?: ExplainAction,
+  ask?: AskContext
+) {
   requests.set(requestId, { tabId, text });
   setBusy(true);
   armRequestTimeout(requestId, tabId);
@@ -110,7 +119,7 @@ async function startGenerate(requestId: string, tabId: number, text: string, act
 
   try {
     await ensureOffscreenDocument();
-    await sendToOffscreen({ type: "OFFSCREEN_GENERATE", requestId, text, action });
+    await sendToOffscreen({ type: "OFFSCREEN_GENERATE", requestId, text, action, ask });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     clearRequestTimeout(requestId);
@@ -130,14 +139,29 @@ chrome.contextMenus.removeAll(() => {
     title: "Explain This",
     contexts: ["selection"]
   });
+  chrome.contextMenus.create({
+    id: ASK_MENU_ID,
+    title: "Ask this page",
+    contexts: ["page"]
+  });
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === ASK_MENU_ID && tab?.id && !busy) {
+    sendToTab(tab.id, { type: "SHOW_ASK_BOX" });
+    return;
+  }
   if (info.menuItemId !== MENU_ID || !info.selectionText || !tab?.id || busy) return;
   await startGenerate(crypto.randomUUID(), tab.id, info.selectionText);
 });
 
-chrome.runtime.onMessage.addListener((message: OffscreenToBackgroundMessage | ContentToBackgroundMessage) => {
+chrome.runtime.onMessage.addListener((message: OffscreenToBackgroundMessage | ContentToBackgroundMessage, sender) => {
+  if (message.type === "ASK_REQUEST") {
+    // Only the tab's content script sends this, so sender.tab is always set.
+    if (busy || !sender.tab?.id) return;
+    startGenerate(message.requestId, sender.tab.id, message.ask.question, undefined, message.ask);
+    return;
+  }
   if (message.type === "ACTION_REQUEST") {
     if (busy) return;
     const request = requests.get(message.requestId);

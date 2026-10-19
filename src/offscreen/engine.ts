@@ -1,16 +1,18 @@
 import { CreateMLCEngine, type MLCEngine } from "@mlc-ai/web-llm";
+import { builtInStatus, streamBuiltIn } from "../shared/builtin-ai";
 import { DEFAULT_MODEL_ID } from "../shared/config";
-import type { BackgroundToOffscreenMessage, ExplainAction, OffscreenToBackgroundMessage } from "../shared/messages";
+import { getEnginePref } from "../shared/engine-pref";
+import type {
+  AskContext,
+  BackgroundToOffscreenMessage,
+  EngineKind,
+  ExplainAction,
+  OffscreenToBackgroundMessage
+} from "../shared/messages";
+import { ASK_PROMPT, buildAskMessage, PROMPTS } from "../shared/prompts";
 
-const PROMPTS: Record<"explain" | ExplainAction, string> = {
-  explain: "Explain the following text in simple, plain language. Be concise: a few sentences at most.",
-  regenerate:
-    "Explain the following text in simple, plain language. Phrase it differently from a typical explanation: same meaning, different wording or structure.",
-  elaborate: "Give a more detailed, in-depth explanation of the following text than a brief summary would.",
-  simplify: "Explain the following text as simply and briefly as possible. Minimal jargon, plain everyday words.",
-  example:
-    "Explain the following text in simple, plain language, and include one concrete example to illustrate it."
-};
+const NO_WEBGPU_MESSAGE =
+  "This browser doesn't support WebGPU, which Explain This needs for local inference. Try a recent version of Chrome or Edge on desktop.";
 
 let enginePromise: Promise<MLCEngine> | null = null;
 let currentRequestId: string | null = null;
@@ -39,26 +41,28 @@ function getEngine(): Promise<MLCEngine> {
   return enginePromise;
 }
 
-async function runGenerate(requestId: string, text: string, action?: ExplainAction) {
-  if (!("gpu" in navigator)) {
-    send({
-      type: "EXPLAIN_ERROR",
-      requestId,
-      message:
-        "This browser doesn't support WebGPU, which Explain This needs for local inference. Try a recent version of Chrome or Edge on desktop."
-    });
-    return;
-  }
+// Chrome's built-in model is only used when it is already downloaded. Starting
+// the download needs a user gesture, which this hidden page never receives, so
+// that happens from the toolbar panel instead.
+async function pickEngine(): Promise<EngineKind> {
+  if (getEnginePref() === "webllm") return "webllm";
+  return (await builtInStatus()) === "available" ? "chrome" : "webllm";
+}
+
+async function generateWithWebLLM(
+  requestId: string,
+  system: string,
+  text: string,
+  onDelta: (delta: string) => void
+): Promise<string> {
+  if (!("gpu" in navigator)) throw new Error(NO_WEBGPU_MESSAGE);
 
   currentRequestId = requestId;
   try {
     const engine = await getEngine();
     const stream = await engine.chat.completions.create({
       messages: [
-        {
-          role: "system",
-          content: PROMPTS[action ?? "explain"]
-        },
+        { role: "system", content: system },
         { role: "user", content: text }
       ],
       stream: true
@@ -69,21 +73,53 @@ async function runGenerate(requestId: string, text: string, action?: ExplainActi
       const delta = chunk.choices[0]?.delta?.content ?? "";
       if (delta) {
         fullText += delta;
-        send({ type: "EXPLAIN_STREAM_CHUNK", requestId, delta });
+        onDelta(delta);
       }
     }
-    send({ type: "EXPLAIN_STREAM_DONE", requestId, fullText });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("Explain This: generate error", err);
-    send({ type: "EXPLAIN_ERROR", requestId, message });
+    return fullText;
   } finally {
     currentRequestId = null;
   }
 }
 
+async function runGenerate(requestId: string, text: string, action?: ExplainAction, ask?: AskContext) {
+  const system = ask ? ASK_PROMPT : PROMPTS[action ?? "explain"];
+  const userText = ask ? buildAskMessage(ask) : text;
+  let emitted = false;
+  const onDelta = (delta: string) => {
+    emitted = true;
+    send({ type: "EXPLAIN_STREAM_CHUNK", requestId, delta });
+  };
+
+  try {
+    let engine = await pickEngine();
+    let fullText: string;
+
+    if (engine === "chrome") {
+      try {
+        fullText = await streamBuiltIn(system, userText, onDelta);
+      } catch (err) {
+        // Once text has reached the popup there is nothing sensible to fall
+        // back to. Before that, WebLLM can still answer.
+        if (emitted) throw err;
+        console.warn("Explain This: Chrome's built-in model failed, falling back to WebLLM", err);
+        engine = "webllm";
+        fullText = await generateWithWebLLM(requestId, system, userText, onDelta);
+      }
+    } else {
+      fullText = await generateWithWebLLM(requestId, system, userText, onDelta);
+    }
+
+    send({ type: "EXPLAIN_STREAM_DONE", requestId, fullText, engine });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Explain This: generate error", err);
+    send({ type: "EXPLAIN_ERROR", requestId, message });
+  }
+}
+
 chrome.runtime.onMessage.addListener((message: BackgroundToOffscreenMessage) => {
   if (message.type === "OFFSCREEN_GENERATE") {
-    runGenerate(message.requestId, message.text, message.action);
+    runGenerate(message.requestId, message.text, message.action, message.ask);
   }
 });
