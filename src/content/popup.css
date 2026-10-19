@@ -96,6 +96,12 @@
   color: #ff8080;
 }
 
+.meta {
+  margin-top: 8px;
+  color: #8f99b3;
+  font-size: 11px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

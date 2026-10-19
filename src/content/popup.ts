@@ -1,9 +1,19 @@
-import type { BackgroundToContentMessage, ContentToBackgroundMessage, ExplainAction } from "../shared/messages";
+import type {
+  BackgroundToContentMessage,
+  ContentToBackgroundMessage,
+  EngineKind,
+  ExplainAction
+} from "../shared/messages";
 import popupCss from "./popup.css?raw";
 
 const FIRST_RUN_KEY = "explainThisSeenFirstRunNotice";
 const FIRST_RUN_NOTICE =
   "First use: downloading a small local AI model (~880MB), one time. After that it works instantly offline.";
+
+const ENGINE_LABELS: Record<EngineKind, string> = {
+  chrome: "Answered by Chrome's built-in model",
+  webllm: "Answered by WebLLM"
+};
 
 const ACTIONS: { label: string; action: ExplainAction }[] = [
   { label: "Regenerate", action: "regenerate" },
@@ -19,6 +29,7 @@ interface PopupElements {
   progressBar: HTMLDivElement;
   progressLabel: HTMLDivElement;
   text: HTMLDivElement;
+  meta: HTMLDivElement;
   error: HTMLDivElement;
   actions: HTMLDivElement;
   copyBtn: HTMLButtonElement;
@@ -80,6 +91,10 @@ function build() {
   text.className = "text hidden";
   panel.appendChild(text);
 
+  const meta = document.createElement("div");
+  meta.className = "meta hidden";
+  panel.appendChild(meta);
+
   const error = document.createElement("div");
   error.className = "error hidden";
   panel.appendChild(error);
@@ -102,7 +117,7 @@ function build() {
   }
   panel.appendChild(actions);
 
-  els = { notice, spinner, progressWrap, progressBar, progressLabel, text, error, actions, copyBtn };
+  els = { notice, spinner, progressWrap, progressBar, progressLabel, text, meta, error, actions, copyBtn };
 
   document.addEventListener("keydown", onKeydown);
   document.addEventListener("mousedown", onOutsideClick, true);
@@ -114,6 +129,7 @@ function hideAllStatus() {
   els.spinner.classList.add("hidden");
   els.progressWrap.classList.add("hidden");
   els.error.classList.add("hidden");
+  els.meta.classList.add("hidden");
   els.actions.classList.add("hidden");
 }
 
@@ -185,17 +201,18 @@ function showLoading(requestId: string) {
   els.text.classList.add("hidden");
   els.text.textContent = "";
 
-  if (!localStorage.getItem(FIRST_RUN_KEY)) {
-    els.notice.textContent = FIRST_RUN_NOTICE;
-    els.notice.classList.remove("hidden");
-    localStorage.setItem(FIRST_RUN_KEY, "1");
-  }
-
   els.spinner.classList.remove("hidden");
 }
 
 function updateModelProgress(requestId: string, progress: number, statusText: string) {
   if (requestId !== currentRequestId || !els) return;
+  // Progress events only arrive when WebLLM is loading its model, so this is
+  // the first point where we know the one-time download notice applies.
+  if (!localStorage.getItem(FIRST_RUN_KEY)) {
+    els.notice.textContent = FIRST_RUN_NOTICE;
+    els.notice.classList.remove("hidden");
+    localStorage.setItem(FIRST_RUN_KEY, "1");
+  }
   els.spinner.classList.add("hidden");
   els.progressWrap.classList.remove("hidden");
   els.progressBar.style.width = `${Math.round(progress * 100)}%`;
@@ -209,11 +226,13 @@ function appendChunk(requestId: string, delta: string) {
   els.text.textContent += delta;
 }
 
-function finish(requestId: string, fullText: string) {
+function finish(requestId: string, fullText: string, engine: EngineKind) {
   if (requestId !== currentRequestId || !els) return;
   hideAllStatus();
   els.text.classList.remove("hidden");
   els.text.textContent = fullText;
+  els.meta.textContent = ENGINE_LABELS[engine];
+  els.meta.classList.remove("hidden");
   els.actions.classList.remove("hidden");
 }
 
@@ -236,7 +255,7 @@ export function handlePopupMessage(message: BackgroundToContentMessage) {
       appendChunk(message.requestId, message.delta);
       break;
     case "EXPLAIN_STREAM_DONE":
-      finish(message.requestId, message.fullText);
+      finish(message.requestId, message.fullText, message.engine);
       break;
     case "EXPLAIN_ERROR":
       showError(message.requestId, message.message);
