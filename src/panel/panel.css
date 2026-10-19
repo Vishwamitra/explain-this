@@ -1,0 +1,67 @@
+body {
+  width: 300px;
+  margin: 0;
+  padding: 14px 16px 16px;
+  background: #151821;
+  color: #e6e9f2;
+  font: 13px/1.45 system-ui, sans-serif;
+}
+
+h1 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+h2 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8f99b3;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+section {
+  margin-bottom: 14px;
+}
+
+p {
+  margin: 0 0 8px;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+button {
+  all: unset;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #3b82f6;
+  color: #fff;
+}
+
+button[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#progress-track {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+#progress-bar {
+  width: 0;
+  height: 100%;
+  background: #3b82f6;
+}
+
+[hidden] {
+  display: none !important;
+}

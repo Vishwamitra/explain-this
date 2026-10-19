@@ -25,7 +25,8 @@ export default defineManifest({
     }
   ],
   action: {
-    default_icon: "public/icons/icon48.png"
+    default_icon: "public/icons/icon48.png",
+    default_popup: "src/panel/panel.html"
   },
   content_security_policy: {
     extension_pages:

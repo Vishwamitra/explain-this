@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Explain This</title>
+    <link rel="stylesheet" href="./panel.css" />
+  </head>
+  <body>
+    <h1>Explain This</h1>
+
+    <section>
+      <h2>Chrome's built-in model</h2>
+      <p id="status"></p>
+      <button id="download" hidden>Download it (one time)</button>
+      <div id="progress-track" hidden><div id="progress-bar"></div></div>
+    </section>
+
+    <section>
+      <h2>Engine</h2>
+      <label><input type="radio" name="engine" value="auto" /> Automatic: Chrome's model if ready, else WebLLM</label>
+      <label><input type="radio" name="engine" value="webllm" /> Always WebLLM</label>
+    </section>
+
+    <script type="module" src="./panel.ts"></script>
+  </body>
+</html>
